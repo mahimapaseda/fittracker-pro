@@ -437,8 +437,6 @@ function onHandsResults(results) {
             startCamera();
         } else if (currentGesture === 'peace') {
             resetCounter();
-        } else if (currentGesture === 'fist') {
-            toggleVoice();
         }
     }
 }

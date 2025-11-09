@@ -65,7 +65,6 @@ open http://localhost:8000
 |---------|--------|--------------|
 | 👍 | Start Camera | Begin workout session |
 | ✌️ | Reset Counter | Clear rep count |
-| ✊ | Toggle Voice | Enable/disable audio |
 | 🖐️ | Default | Normal tracking mode |
 
 ## 💡 Pro Tips for Best Results
