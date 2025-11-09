@@ -215,13 +215,5 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - 🐦 **Twitter**: [@FitTrackerPro](https://twitter.com/fittrackerPro)
 - ⭐ **Star this repo** if you found it helpful!
 
----
 
-<div align="center">
-
-**Made with ❤️ for the fitness community**
-
-[🌟 Star](https://github.com/username/fittracker-pro) • [🍴 Fork](https://github.com/username/fittracker-pro/fork) • [📝 Issues](https://github.com/username/fittracker-pro/issues) • [📖 Wiki](https://github.com/username/fittracker-pro/wiki)
-
-</div>
 
