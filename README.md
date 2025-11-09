@@ -51,7 +51,7 @@ open http://localhost:8000
 ```
 
 ### Option 2: GitHub Pages
-🌐 **[Try Live Demo](https://username.github.io/fittracker-pro)**
+🌐 **[Try Live Demo](https://mahimapaseda.github.io/fittracker-pro/)**
 
 ### Setup Steps
 1. **Grant Camera Access** - Allow webcam permissions
