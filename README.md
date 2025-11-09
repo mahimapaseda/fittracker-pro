@@ -210,9 +210,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 📞 Support
 
-- 📧 **Email**: support@fittracker-pro.com
-- 💬 **Discord**: [Join Community](https://discord.gg/fittracker)
-- 🐦 **Twitter**: [@FitTrackerPro](https://twitter.com/fittrackerPro)
+- 📧 **Email**: mahimapasedakusumsiri@gmail.com
 - ⭐ **Star this repo** if you found it helpful!
 
 
