@@ -1,4 +1,3 @@
-// MediaPipe setup
 let pose = null;
 let hands = null;
 let camera = null;
@@ -7,13 +6,11 @@ let canvasElement = null;
 let canvasCtx = null;
 let currentGesture = 'none';
 
-// Bicep curl tracking variables
 let totalReps = 0;
 let isCounting = false;
 let voiceEnabled = false;
-let activeHand = 'none'; // 'none', 'right', 'left', 'both'
+let activeHand = 'none';
 
-// Enhanced tracking for each arm
 const armTracking = {
     right: {
         state: 'down',
@@ -41,16 +38,14 @@ const armTracking = {
     }
 };
 
-// Configuration - Optimized for fast detection
 const CONFIG = {
-    SMOOTHING_WINDOW: 3, // Reduced from 5 for faster response
-    MIN_CURL_ANGLE: 60, // Slightly relaxed for faster detection (smaller angle = more curled)
-    MAX_EXTEND_ANGLE: 150, // Slightly relaxed for faster detection (larger angle = more extended)
-    REP_COOLDOWN_MS: 400, // Reduced from 800ms for faster rep counting
-    MIN_RANGE_OF_MOTION: 60 // Reduced from 80° for faster detection while maintaining accuracy
+    SMOOTHING_WINDOW: 3,
+    MIN_CURL_ANGLE: 60,
+    MAX_EXTEND_ANGLE: 150,
+    REP_COOLDOWN_MS: 400,
+    MIN_RANGE_OF_MOTION: 60
 };
 
-// DOM elements
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
 const voiceBtn = document.getElementById('voiceBtn');
@@ -60,7 +55,6 @@ const totalRepsEl = document.getElementById('totalReps');
 const armAngleEl = document.getElementById('armAngle');
 const armStatusEl = document.getElementById('armStatus');
 
-// Initialize MediaPipe Pose and Hands
 function initializePose() {
     pose = new Pose({
         locateFile: (file) => {
@@ -94,7 +88,6 @@ function initializePose() {
     hands.onResults(onHandsResults);
 }
 
-// Calculate angle between three points
 function calculateAngle(point1, point2, point3) {
     const radians = Math.atan2(point3.y - point2.y, point3.x - point2.x) - 
                     Math.atan2(point1.y - point2.y, point1.x - point2.x);
@@ -105,40 +98,33 @@ function calculateAngle(point1, point2, point3) {
     return angle;
 }
 
-// Smooth angle using moving average - optimized for speed
 function smoothAngle(angleHistory, newAngle) {
     angleHistory.push(newAngle);
     if (angleHistory.length > CONFIG.SMOOTHING_WINDOW) {
         angleHistory.shift();
     }
     
-    // Fast weighted average (recent frames have more weight for responsiveness)
     if (angleHistory.length === 1) return newAngle;
     
     let sum = 0;
     let weightSum = 0;
     for (let i = 0; i < angleHistory.length; i++) {
-        const weight = i + 1; // More recent = higher weight
+        const weight = i + 1;
         sum += angleHistory[i] * weight;
         weightSum += weight;
     }
     return sum / weightSum;
 }
 
-// Check if hand is above shoulder (additional validation for curl)
 function isHandAboveShoulder(shoulder, wrist) {
-    return wrist.y < shoulder.y; // y decreases upward in screen coordinates
+    return wrist.y < shoulder.y;
 }
 
-// Check if hand is below elbow (additional validation for extension)
 function isHandBelowElbow(elbow, wrist) {
     return wrist.y > elbow.y;
 }
 
-// Detect bicep curl with enhanced accuracy
 function detectBicepCurl(landmarks) {
-    // Key points for right arm: Shoulder: 12, Elbow: 14, Wrist: 16
-    // Key points for left arm: Shoulder: 11, Elbow: 13, Wrist: 15
     const rightShoulder = landmarks[12];
     const rightElbow = landmarks[14];
     const rightWrist = landmarks[16];
@@ -152,12 +138,10 @@ function detectBicepCurl(landmarks) {
     let repDetected = false;
     const currentTime = Date.now();
 
-    // Check right arm with enhanced accuracy
     if (rightShoulder && rightElbow && rightWrist) {
         const rawAngle = calculateAngle(rightShoulder, rightElbow, rightWrist);
         rightAngle = smoothAngle(armTracking.right.angleHistory, rawAngle);
         
-        // Update min/max angles
         if (rightAngle < armTracking.right.minAngle) {
             armTracking.right.minAngle = rightAngle;
         }
@@ -165,46 +149,36 @@ function detectBicepCurl(landmarks) {
             armTracking.right.maxAngle = rightAngle;
         }
         
-        // Check if hand is above shoulder (for curl validation)
         const handAboveShoulder = isHandAboveShoulder(rightShoulder, rightWrist);
         
-        // Fast-responsive state machine
         if (armTracking.right.state === 'down') {
-            // Check if arm is curling up - faster detection with relaxed threshold
             if (rightAngle < CONFIG.MIN_CURL_ANGLE) {
-                // Optional: check hand position for better accuracy, but don't require it
                 if (handAboveShoulder || rightAngle < CONFIG.MIN_CURL_ANGLE - 10) {
                     armTracking.right.hasReachedUp = true;
                     armTracking.right.state = 'up';
                 }
             }
         } else if (armTracking.right.state === 'up') {
-            // Check if arm is extending down - immediate detection
             if (rightAngle > CONFIG.MAX_EXTEND_ANGLE) {
                 armTracking.right.hasReachedDown = true;
                 
-                // Fast validation: check range and cooldown
                 const rangeOfMotion = armTracking.right.maxAngle - armTracking.right.minAngle;
                 const timeSinceLastRep = currentTime - armTracking.right.lastRepTime;
                 
-                // Faster rep detection with relaxed requirements
                 if (armTracking.right.hasReachedUp && 
                     armTracking.right.hasReachedDown && 
                     rangeOfMotion >= CONFIG.MIN_RANGE_OF_MOTION &&
                     timeSinceLastRep >= CONFIG.REP_COOLDOWN_MS) {
                     
-                    // Valid rep detected immediately!
                     repDetected = true;
                     armTracking.right.lastRepTime = currentTime;
                     
-                    // Quick reset for next rep
                     armTracking.right.state = 'down';
                     armTracking.right.hasReachedUp = false;
                     armTracking.right.hasReachedDown = false;
                     armTracking.right.minAngle = 180;
                     armTracking.right.maxAngle = 180;
                 } else if (rightAngle > CONFIG.MAX_EXTEND_ANGLE + 15) {
-                    // Reset if extended too far without completing rep
                     armTracking.right.state = 'down';
                     armTracking.right.hasReachedUp = false;
                     armTracking.right.hasReachedDown = false;
@@ -213,12 +187,10 @@ function detectBicepCurl(landmarks) {
         }
     }
 
-    // Check left arm with enhanced accuracy
     if (leftShoulder && leftElbow && leftWrist) {
         const rawAngle = calculateAngle(leftShoulder, leftElbow, leftWrist);
         leftAngle = smoothAngle(armTracking.left.angleHistory, rawAngle);
         
-        // Update min/max angles
         if (leftAngle < armTracking.left.minAngle) {
             armTracking.left.minAngle = leftAngle;
         }
@@ -226,46 +198,36 @@ function detectBicepCurl(landmarks) {
             armTracking.left.maxAngle = leftAngle;
         }
         
-        // Check if hand is above shoulder (for curl validation)
         const handAboveShoulder = isHandAboveShoulder(leftShoulder, leftWrist);
         
-        // Fast-responsive state machine
         if (armTracking.left.state === 'down') {
-            // Check if arm is curling up - faster detection with relaxed threshold
             if (leftAngle < CONFIG.MIN_CURL_ANGLE) {
-                // Optional: check hand position for better accuracy, but don't require it
                 if (handAboveShoulder || leftAngle < CONFIG.MIN_CURL_ANGLE - 10) {
                     armTracking.left.hasReachedUp = true;
                     armTracking.left.state = 'up';
                 }
             }
         } else if (armTracking.left.state === 'up') {
-            // Check if arm is extending down - immediate detection
             if (leftAngle > CONFIG.MAX_EXTEND_ANGLE) {
                 armTracking.left.hasReachedDown = true;
                 
-                // Fast validation: check range and cooldown
                 const rangeOfMotion = armTracking.left.maxAngle - armTracking.left.minAngle;
                 const timeSinceLastRep = currentTime - armTracking.left.lastRepTime;
                 
-                // Faster rep detection with relaxed requirements
                 if (armTracking.left.hasReachedUp && 
                     armTracking.left.hasReachedDown && 
                     rangeOfMotion >= CONFIG.MIN_RANGE_OF_MOTION &&
                     timeSinceLastRep >= CONFIG.REP_COOLDOWN_MS) {
                     
-                    // Valid rep detected immediately!
                     repDetected = true;
                     armTracking.left.lastRepTime = currentTime;
                     
-                    // Quick reset for next rep
                     armTracking.left.state = 'down';
                     armTracking.left.hasReachedUp = false;
                     armTracking.left.hasReachedDown = false;
                     armTracking.left.minAngle = 180;
                     armTracking.left.maxAngle = 180;
                 } else if (leftAngle > CONFIG.MAX_EXTEND_ANGLE + 15) {
-                    // Reset if extended too far without completing rep
                     armTracking.left.state = 'down';
                     armTracking.left.hasReachedUp = false;
                     armTracking.left.hasReachedDown = false;
@@ -274,7 +236,6 @@ function detectBicepCurl(landmarks) {
         }
     }
 
-    // Calculate enhanced activity scores
     if (rightAngle !== null) {
         const rightVel = Math.abs(rightAngle - armTracking.right.lastAngle);
         const rightRange = armTracking.right.maxAngle - armTracking.right.minAngle;
@@ -299,7 +260,6 @@ function detectBicepCurl(landmarks) {
         armTracking.left.activityScore *= 0.85;
     }
     
-    // Enhanced hand detection with confidence thresholds
     const rightActive = armTracking.right.activityScore > 3 && (armTracking.right.state !== 'down' || armTracking.right.velocity > 1);
     const leftActive = armTracking.left.activityScore > 3 && (armTracking.left.state !== 'down' || armTracking.left.velocity > 1);
     
@@ -318,7 +278,6 @@ function detectBicepCurl(landmarks) {
         activeHand = 'none';
     }
     
-    // Update display
     const displayAngle = rightAngle !== null ? rightAngle : (leftAngle !== null ? leftAngle : null);
     if (displayAngle !== null) {
         armAngleEl.textContent = Math.round(displayAngle) + '°';
@@ -343,28 +302,23 @@ function detectBicepCurl(landmarks) {
         activeHand = 'none';
     }
 
-    // Count rep if detected - immediate response
     if (repDetected) {
         totalReps++;
         totalRepsEl.textContent = totalReps;
         
-        // Voice announcement
         if (voiceEnabled) {
             speakCount(totalReps);
         }
         
-        // Immediate visual feedback with animation
         totalRepsEl.style.transform = 'scale(1.3)';
         totalRepsEl.style.color = '#00FF00';
         totalRepsEl.style.transition = 'all 0.1s ease-out';
         
-        // Quick reset animation
         setTimeout(() => {
             totalRepsEl.style.transform = 'scale(1)';
             totalRepsEl.style.color = '';
         }, 200);
         
-        // Update status immediately
         armStatusEl.textContent = 'Rep Counted! ✓';
         armStatusEl.style.color = '#00FF00';
         setTimeout(() => {
@@ -372,13 +326,12 @@ function detectBicepCurl(landmarks) {
             armStatusEl.style.color = '#FFFFFF';
         }, 500);
         
-        return true; // Rep completed
+        return true;
     }
 
     return false;
 }
 
-// Draw a circle on canvas
 function drawCircle(ctx, x, y, radius, color) {
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
@@ -386,7 +339,6 @@ function drawCircle(ctx, x, y, radius, color) {
     ctx.fill();
 }
 
-// Draw a line on canvas
 function drawLine(ctx, x1, y1, x2, y2, color, lineWidth) {
     ctx.beginPath();
     ctx.moveTo(x1, y1);
@@ -396,7 +348,6 @@ function drawLine(ctx, x1, y1, x2, y2, color, lineWidth) {
     ctx.stroke();
 }
 
-// Detect hand gestures
 function detectGesture(landmarks) {
     if (!landmarks || landmarks.length < 21) return 'none';
     
@@ -406,29 +357,23 @@ function detectGesture(landmarks) {
     const ring = landmarks[16];
     const pinky = landmarks[20];
     
-    // Thumbs up detection
     if (thumb.y < landmarks[3].y && index.y > landmarks[6].y && 
         middle.y > landmarks[10].y && ring.y > landmarks[14].y && pinky.y > landmarks[18].y) {
         return 'thumbs_up';
     }
     
-    // Peace sign detection
     if (index.y < landmarks[6].y && middle.y < landmarks[10].y && 
         ring.y > landmarks[14].y && pinky.y > landmarks[18].y) {
         return 'peace';
     }
     
-
-    
     return 'open';
 }
 
-// Process hands detection results
 function onHandsResults(results) {
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         currentGesture = detectGesture(results.multiHandLandmarks[0]);
         
-        // Gesture actions
         if (currentGesture === 'thumbs_up' && !isCounting) {
             startCamera();
         } else if (currentGesture === 'peace') {
@@ -437,16 +382,13 @@ function onHandsResults(results) {
     }
 }
 
-// Process pose detection results
 function onPoseResults(results) {
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     
-    // Draw pose landmarks
     if (results.poseLandmarks) {
         const landmarks = results.poseLandmarks;
         
-        // Draw key points for bicep curl detection (both arms)
         const rightShoulder = landmarks[12];
         const rightElbow = landmarks[14];
         const rightWrist = landmarks[16];
@@ -455,7 +397,6 @@ function onPoseResults(results) {
         const leftElbow = landmarks[13];
         const leftWrist = landmarks[15];
         
-        // Draw right arm with state-based coloring
         if (rightShoulder && rightElbow && rightWrist) {
             const shoulderX = rightShoulder.x * canvasElement.width;
             const shoulderY = rightShoulder.y * canvasElement.height;
@@ -464,12 +405,11 @@ function onPoseResults(results) {
             const wristX = rightWrist.x * canvasElement.width;
             const wristY = rightWrist.y * canvasElement.height;
             
-            // Color based on state: green = tracking, yellow = curling, blue = extending
-            let lineColor = '#00FF00'; // Default green
+            let lineColor = '#00FF00';
             if (armTracking.right.state === 'up') {
-                lineColor = '#FFFF00'; // Yellow when curled
+                lineColor = '#FFFF00';
             } else if (armTracking.right.hasReachedUp && armTracking.right.state === 'down') {
-                lineColor = '#00FFFF'; // Cyan when extending after curl
+                lineColor = '#00FFFF';
             }
             
             drawLine(canvasCtx, shoulderX, shoulderY, elbowX, elbowY, lineColor, 3);
@@ -480,7 +420,6 @@ function onPoseResults(results) {
             drawCircle(canvasCtx, wristX, wristY, 5, '#FF0000');
         }
         
-        // Draw left arm with state-based coloring
         if (leftShoulder && leftElbow && leftWrist) {
             const shoulderX = leftShoulder.x * canvasElement.width;
             const shoulderY = leftShoulder.y * canvasElement.height;
@@ -489,12 +428,11 @@ function onPoseResults(results) {
             const wristX = leftWrist.x * canvasElement.width;
             const wristY = leftWrist.y * canvasElement.height;
             
-            // Color based on state: green = tracking, yellow = curling, blue = extending
-            let lineColor = '#00FF00'; // Default green
+            let lineColor = '#00FF00';
             if (armTracking.left.state === 'up') {
-                lineColor = '#FFFF00'; // Yellow when curled
+                lineColor = '#FFFF00';
             } else if (armTracking.left.hasReachedUp && armTracking.left.state === 'down') {
-                lineColor = '#00FFFF'; // Cyan when extending after curl
+                lineColor = '#00FFFF';
             }
             
             drawLine(canvasCtx, shoulderX, shoulderY, elbowX, elbowY, lineColor, 3);
@@ -505,7 +443,6 @@ function onPoseResults(results) {
             drawCircle(canvasCtx, wristX, wristY, 5, '#FF0000');
         }
         
-        // Try to use MediaPipe drawing utilities if available
         if (typeof drawConnections !== 'undefined' && typeof POSE_CONNECTIONS !== 'undefined') {
             drawConnections(canvasCtx, landmarks, POSE_CONNECTIONS, {
                 color: '#00FF00',
@@ -521,7 +458,6 @@ function onPoseResults(results) {
             });
         }
 
-        // Detect bicep curl
         detectBicepCurl(landmarks);
         
         statusEl.textContent = 'Tracking...';
@@ -534,10 +470,8 @@ function onPoseResults(results) {
     canvasCtx.restore();
 }
 
-// Start camera
 async function startCamera() {
     try {
-        // Check if running on HTTPS or localhost
         if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
             throw new Error('Camera requires HTTPS or localhost');
         }
@@ -546,12 +480,10 @@ async function startCamera() {
         canvasElement = document.getElementById('canvas');
         canvasCtx = canvasElement.getContext('2d');
 
-        // Check if getUserMedia is supported
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error('Camera not supported by browser');
         }
 
-        // Set canvas size
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { 
                 width: { ideal: 640 },
@@ -567,7 +499,6 @@ async function startCamera() {
             canvasElement.height = videoElement.videoHeight;
         });
 
-        // Initialize camera with pose and hands detection
         camera = new Camera(videoElement, {
             onFrame: async () => {
                 await pose.send({ image: videoElement });
@@ -577,16 +508,13 @@ async function startCamera() {
             height: 480
         });
         
-        // Request higher frame rate if available
         if (videoElement.srcObject) {
             const track = videoElement.srcObject.getVideoTracks()[0];
             if (track && track.getSettings) {
                 const settings = track.getSettings();
-                // Try to set higher frame rate for faster detection
                 track.applyConstraints({
                     frameRate: { ideal: 30, max: 30 }
                 }).catch(() => {
-                    // Ignore if not supported
                 });
             }
         }
@@ -621,11 +549,9 @@ async function startCamera() {
     }
 }
 
-// Reset counter
 function resetCounter() {
     totalReps = 0;
     
-    // Reset both arms
     armTracking.right = {
         state: 'down',
         angleHistory: [],
@@ -652,13 +578,11 @@ function resetCounter() {
     armStatusEl.style.color = '#FFFFFF';
 }
 
-// Voice synthesis function
 function speakCount(count) {
     if ('speechSynthesis' in window) {
         speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(count.toString());
         
-        // Get available voices and select best one
         const voices = speechSynthesis.getVoices();
         const preferredVoice = voices.find(voice => 
             voice.lang.startsWith('en') && voice.localService
@@ -677,19 +601,16 @@ function speakCount(count) {
     }
 }
 
-// Toggle voice assistance
 function toggleVoice() {
     voiceEnabled = !voiceEnabled;
     voiceBtn.textContent = voiceEnabled ? 'Voice: ON' : 'Voice: OFF';
     voiceBtn.style.background = voiceEnabled ? 'rgba(0, 255, 0, 0.8)' : '';
 }
 
-// Event listeners
 startBtn.addEventListener('click', startCamera);
 resetBtn.addEventListener('click', resetCounter);
 voiceBtn.addEventListener('click', toggleVoice);
 
-// Update hand detection display
 setInterval(() => {
     if (handBtn) {
         const labels = { none: 'No Hand', right: 'Right Hand', left: 'Left Hand', both: 'Both Hands' };
@@ -697,13 +618,11 @@ setInterval(() => {
     }
 }, 100);
 
-// Initialize on page load
 window.addEventListener('load', () => {
     initializePose();
     statusEl.textContent = 'Ready - Click "Start Camera" to begin';
     statusEl.style.background = 'rgba(0, 150, 255, 0.7)';
     
-    // Show modal on load
     const modal = document.getElementById('instructionModal');
     const closeBtn = document.querySelector('.close');
     
