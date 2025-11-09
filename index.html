@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTracker Pro - AI Bicep Curl Counter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔥 FITTRACKER PRO</h1>
+            <p class="subtitle">AI-Powered Bicep Curl Counter | Professional Fitness Tracking</p>
+        </header>
+
+        <div class="main-content">
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <div class="overlay-info">
+                    <div class="status" id="status">Initializing camera...</div>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-card">
+                    <div class="stat-label">Total Reps</div>
+                    <div class="stat-value" id="totalReps">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Arm Angle</div>
+                    <div class="stat-value" id="armAngle">--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Status</div>
+                    <div class="stat-value" id="armStatus" style="font-size: 1.2rem;">Ready</div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">Start Camera</button>
+                <button id="resetBtn" class="btn btn-secondary">Reset Counter</button>
+                <button id="voiceBtn" class="btn btn-secondary">Voice: OFF</button>
+                <button id="handBtn" class="btn btn-secondary">Auto Detect</button>
+            </div>
+
+            <div id="instructionModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h3>Training Protocol:</h3>
+                    <ul>
+                        <li>Position yourself 2-3 feet from camera for optimal tracking</li>
+                        <li>Ensure full upper body visibility in frame</li>
+                        <li>System tracks both arms simultaneously for maximum accuracy</li>
+                        <li><strong>Performance Optimization:</strong></li>
+                        <li>Real-time rep detection with instant feedback</li>
+                        <li>Start position: Arms fully extended at sides</li>
+                        <li>Peak contraction: Hands above shoulder level</li>
+                        <li>Complete range of motion: Full extension to peak curl</li>
+                        <li>Automatic rep validation with 60° minimum ROM</li>
+                        <li>Professional-grade pose estimation technology</li>
+                    </ul>
+                    <h3>Gesture Controls:</h3>
+                    <ul>
+                        <li>👍 Thumbs Up: Starts camera automatically</li>
+                        <li>✌️ Peace Sign: Resets counter</li>
+                        <li>✊ Fist: Toggles voice on/off</li>
+                        <li>🖐️ Open Hand: Default state</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+
