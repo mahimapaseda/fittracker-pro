@@ -543,15 +543,25 @@ function onPoseResults(results) {
 // Start camera
 async function startCamera() {
     try {
+        // Check if running on HTTPS or localhost
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            throw new Error('Camera requires HTTPS or localhost');
+        }
+
         videoElement = document.getElementById('video');
         canvasElement = document.getElementById('canvas');
         canvasCtx = canvasElement.getContext('2d');
 
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera not supported by browser');
+        }
+
         // Set canvas size
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { 
-                width: 640, 
-                height: 480,
+                width: { ideal: 640 },
+                height: { ideal: 480 },
                 facingMode: 'user'
             }
         });
@@ -597,9 +607,23 @@ async function startCamera() {
         
     } catch (error) {
         console.error('Error accessing camera:', error);
-        statusEl.textContent = 'Error: Could not access camera. Please allow camera permissions.';
+        let errorMsg = 'Camera access failed. ';
+        
+        if (error.name === 'NotAllowedError') {
+            errorMsg += 'Please allow camera permissions and refresh the page.';
+        } else if (error.name === 'NotFoundError') {
+            errorMsg += 'No camera found. Please connect a camera.';
+        } else if (error.name === 'NotSupportedError') {
+            errorMsg += 'Camera not supported by browser.';
+        } else if (error.message.includes('HTTPS')) {
+            errorMsg += 'Camera requires HTTPS. Try: https://mahimapaseda.github.io/fittracker-pro';
+        } else {
+            errorMsg += 'Please check permissions and try again.';
+        }
+        
+        statusEl.textContent = errorMsg;
         statusEl.style.background = 'rgba(255, 0, 0, 0.7)';
-        alert('Could not access camera. Please check permissions and try again.');
+        alert(errorMsg);
     }
 }
 
