@@ -418,11 +418,7 @@ function detectGesture(landmarks) {
         return 'peace';
     }
     
-    // Fist detection
-    if (index.y > landmarks[6].y && middle.y > landmarks[10].y && 
-        ring.y > landmarks[14].y && pinky.y > landmarks[18].y) {
-        return 'fist';
-    }
+
     
     return 'open';
 }
